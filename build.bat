@@ -3,6 +3,7 @@
 chcp 65001
 
 setlocal enabledelayedexpansion
+set CGO_ENABLED=0
 
 rem 定义目标平台
 set platforms=linux/amd64 linux/arm64 windows/amd64 darwin/amd64 darwin/arm64

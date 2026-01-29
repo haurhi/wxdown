@@ -42,7 +42,9 @@ func handleImage(child *goquery.Selection, nodes *[]NodeContent) {
 		if !exists {
 			src, exists = child.Attr("src")
 		}
-		*nodes = append(*nodes, NodeContent{Node: child, Original: src, Target: "", Type: 0})
+		if len(src) > 0 {
+			*nodes = append(*nodes, NodeContent{Node: child, Original: src, Target: "", Type: 0})
+		}
 	}
 	// 2、检查当前节点的 style 属性是否包含 data-lazy-bgimg
 	bg, exists := child.Attr("data-lazy-bgimg")
@@ -92,7 +94,7 @@ func handleImage(child *goquery.Selection, nodes *[]NodeContent) {
 	// 5、svg embed
 	if child.Is("embed") {
 		src, exists := child.Attr("src")
-		if exists {
+		if exists && len(src) > 0 {
 			*nodes = append(*nodes, NodeContent{Node: child, Original: src, Target: "", Type: 0})
 		}
 

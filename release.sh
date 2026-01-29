@@ -39,6 +39,6 @@ MAX_INDEX=$(expr ${#OS[@]} - 1)
 for i in $(seq 0 $MAX_INDEX); 
 do
     EXECUTABLE=$EXECUTABLE_PREFIX"_"$VERSION"_"${EXECUTABLE_POSTFIX[$i]}
-    GOOS=${OS[$i]} GOARCH=${ARCH[$i]} go build -ldflags "-X main.runMode=binary -X main.version=$VERSION" -o $EXECUTABLE ../main.go && \
+    CGO_ENABLED=0 GOOS=${OS[$i]} GOARCH=${ARCH[$i]} go build -ldflags "-X main.runMode=binary -X main.version=$VERSION" -o $EXECUTABLE ../main.go && \
     sha1sum $EXECUTABLE > $EXECUTABLE".sha1sum"
 done

@@ -23,14 +23,6 @@ func DownloadFile(url string, filepath string, headers map[string]string, sem ch
 	sem <- struct{}{}
 	defer func() { <-sem }() // 确保在函数返回时释放信号量令牌
 
-	// 创建文件
-	file, err := os.Create(filepath)
-	if err != nil {
-		fmt.Printf("无法创建文件：%s\n", err)
-		return
-	}
-	defer file.Close()
-
 	// 创建一个 HttpClient 实例，设置超时时间为 10 分钟
 	client := utils.NewHttpClient(10 * 60 * time.Second)
 	// 发送请求
@@ -40,12 +32,29 @@ func DownloadFile(url string, filepath string, headers map[string]string, sem ch
 		return
 	}
 
-	// 拷贝文件到本地
-	_, err = io.Copy(file, bytes.NewReader(response)) // 字节转 reader 对象
+	// 写入文件逻辑封装，确保 defer file.Close() 生效
+	err = func() error {
+		// 创建文件
+		file, err := os.Create(filepath)
+		if err != nil {
+			return fmt.Errorf("无法创建文件：%w", err)
+		}
+		defer file.Close()
+
+		// 拷贝文件到本地
+		_, err = io.Copy(file, bytes.NewReader(response)) // 字节转 reader 对象
+		if err != nil {
+			return fmt.Errorf("无法写入文件：%w", err)
+		}
+		return nil
+	}()
+
 	if err != nil {
-		fmt.Printf("无法写入文件：%s\n", err)
+		fmt.Println(err)
 		return
 	}
+
+	// 文件已关闭，安全进行转码
 	webPToJPEG(filepath)
 	log.Println(filepath)
 }
@@ -88,8 +97,17 @@ func webPToJPEG(filepath string) {
 		// 解码 WebP 文件为图像对象
 		img, err := webp.Decode(webpFile)
 		if err != nil {
-			fmt.Println("图片解码错误:", err)
-			return
+			// 尝试重置文件指针并使用通用解码器，处理实际上是其他格式（如PNG/JPG）但后缀为webp的情况
+			_, seekErr := webpFile.Seek(0, 0)
+			if seekErr != nil {
+				fmt.Println("文件指针重置错误:", seekErr)
+				return
+			}
+			img, err = imaging.Decode(webpFile)
+			if err != nil {
+				fmt.Println("图片解码错误:", err)
+				return
+			}
 		}
 
 		// 创建一个新的JPG文件
